@@ -206,6 +206,14 @@
   .mcp:hover{transform:scale(1.2);}
   .mcp.sel{border-color:#fff;}
 
+  .upload-card{background:#FAFAF8;border:1px solid var(--gray-light);border-radius:8px;padding:12px;margin-bottom:10px;}
+  .upload-card .uc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .upload-thumb{width:100%;border-radius:6px;overflow:hidden;border:1px solid var(--gray-light);background:#E8E5DE;height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative;cursor:pointer;}
+  .upload-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .upload-thumb .upload-placeholder{font-size:11px;color:#aaa;text-align:center;padding:10px;pointer-events:none;}
+  .upload-thumb input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-thumb:hover{border-color:var(--orange);}
+
   .btn-edit-std{width:100%;padding:9px 14px;background:none;border:1.5px solid var(--gray-light);border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;color:var(--gray);cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:7px;}
   .btn-edit-std:hover{border-color:var(--orange);color:var(--orange);background:#FFF8F4;}
   .btn-edit-std.open{border-color:var(--orange);color:var(--orange);}
@@ -267,8 +275,8 @@
     </div>
     <div class="sub-options" id="deltamist-options">
       <div class="row2">
-        <div><label style="margin-top:0">Rate per SY ($)</label><input type="number" id="deltamist-rate" value="1.39" min="0" step="0.01" oninput="update()" autocomplete="off"></div>
-        <div><label style="margin-top:0">Gal/SY Application Rate</label><input type="number" id="deltamist-gal-rate" value="0.10" min="0" step="0.01" oninput="update()" autocomplete="off"></div>
+        <div><label style="margin-top:0">Rate per yd<sup>2</sup> ($)</label><input type="number" id="deltamist-rate" value="1.39" min="0" step="0.01" oninput="update()" autocomplete="off"></div>
+        <div><label style="margin-top:0">Gal/yd<sup>2</sup> Application Rate</label><input type="number" id="deltamist-gal-rate" value="0.10" min="0" step="0.01" oninput="update()" autocomplete="off"></div>
       </div>
     </div>
 
@@ -340,7 +348,7 @@
       <div class="toggle" id="rpf-toggle"></div>
     </div>
     <div class="sub-options" id="rpf-options">
-      <label>Future Paving Area (SY)</label>
+      <label>Future Paving Area (yd<sup>2</sup>)</label>
       <input type="number" id="rpf-area" value="6158" min="0" oninput="update()">
     </div>
 
@@ -348,7 +356,36 @@
     <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">Toggle each item to assign to Driven Plastics or the Client.</p>
     <div id="responsibility-items"></div>
 
-    <div class="section-header"><div class="num">8</div><h3>Contact Info</h3></div>
+    <div class="section-header"><div class="num">8</div><h3>Project Schedule</h3></div>
+    <label>Total Days On Site</label>
+    <input type="number" id="schedule-days" value="1" min="0" step="0.5" oninput="update()" autocomplete="off">
+    <label style="margin-top:14px;">Schedule Notes</label>
+    <button class="btn-edit-std" id="btn-edit-schedule" onclick="toggleScheduleLanguage()" style="margin-top:6px;">✏ Edit Standard Language</button>
+    <div id="schedule-lang-editor" style="display:none;margin-top:8px;">
+      <textarea id="schedule-override" rows="7" oninput="update()"></textarea>
+      <button onclick="resetScheduleLanguage()" style="background:none;border:none;font-family:'Barlow',sans-serif;font-size:12px;color:var(--gray);cursor:pointer;padding:4px 0;text-decoration:underline;">↺ Reset to auto</button>
+    </div>
+
+    <div class="section-header"><div class="num">9</div><h3>Explainer Pages</h3></div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">Toggle sections to append to the end of the proposal.</p>
+    <div class="toggle-row" onclick="toggleExplainer('equipDM')">
+      <div class="tl"><strong>Equipment — Delta Mist Truck</strong><span>Distributor truck description &amp; photo</span></div>
+      <div class="toggle" id="explainer-equipDM-toggle"></div>
+    </div>
+    <div class="toggle-row" onclick="toggleExplainer('equipTDRI')">
+      <div class="tl"><strong>Equipment — TDRI</strong><span>Hitch-mount scanner description &amp; photo</span></div>
+      <div class="toggle" id="explainer-equipTDRI-toggle"></div>
+    </div>
+    <div class="toggle-row" onclick="toggleExplainer('appendixTDRI')">
+      <div class="tl"><strong>Appendix — Previous Scans</strong><span>Upload scan report images</span></div>
+      <div class="toggle" id="explainer-appendixTDRI-toggle"></div>
+    </div>
+    <div class="sub-options" id="appendix-scan-options">
+      <div id="appendix-scans-list"></div>
+      <button class="btn-add" onclick="addAppendixScan()">+ Add Scan</button>
+    </div>
+
+    <div class="section-header"><div class="num">10</div><h3>Contact Info</h3></div>
     <div class="row2">
       <div><label>Contact Name</label><input type="text" id="contact-name" placeholder="e.g. Jane Smith" oninput="update()"></div>
       <div><label>Phone</label><input type="text" id="contact-phone" placeholder="e.g. 555-555-5555" oninput="update()"></div>
@@ -437,6 +474,8 @@ const RESPONSIBILITY_ITEMS = [
 // Helper to get sections for the currently active map being edited
 function activeSections() { return siteMaps[activeSiteMapIdx]?.sections || []; }
 let deltaMistOn = false, tdriOn = false, coringOn = false, rpfOn = false, riaasOn = false;
+let explainers = { equipDM: false, equipTDRI: false, appendixTDRI: false };
+let appendixScans = [{ title: '', imageDataUrl: null }];
 let tdriMode = 'auto', riaasMode = 'auto'; // 'auto' | 'manual' | 'flat'
 let inlineMap = null, inlineDraw = null;
 let modalMap = null, modalDraw = null;
@@ -926,7 +965,7 @@ function renderModalSidebar() {
     <div class="mms-section">
       <div class="mms-top">
         <div class="mms-dot" style="background:${s.mapColor}"></div>
-        <span class="mms-area">${fmt(s.area)} SY</span>
+        <span class="mms-area">${fmt(s.area)} yd<sup>2</sup></span>
       </div>
       <input class="mms-name-input" type="text" value="${s.name}" placeholder="Section ${i+1}"
         oninput="updateSection(${activeSiteMapIdx},${i},'name',this.value)">
@@ -1009,7 +1048,7 @@ function renderCoringCheckboxes() {
   el.innerHTML = secs.map((s,i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <input type="checkbox" id="core-${i}" style="width:auto;accent-color:var(--orange);" onchange="update()">
-      <label for="core-${i}" style="margin:0;font-size:13px;text-transform:none;letter-spacing:0;color:var(--dark);font-weight:500;">${s.name||`Section ${i+1}`} — ${fmt(s.area)} SY</label>
+      <label for="core-${i}" style="margin:0;font-size:13px;text-transform:none;letter-spacing:0;color:var(--dark);font-weight:500;">${s.name||`Section ${i+1}`} — ${fmt(s.area)} yd<sup>2</sup></label>
     </div>`).join('');
 }
 
@@ -1104,7 +1143,7 @@ function renderSiteMaps() {
             <input type="text" value="${s.name}" placeholder="e.g. Main Lot" oninput="updateSection(${mapIdx},${i},'name',this.value)">
           </div>
           <div>
-            <label style="margin-top:0">Area (SY)</label>
+            <label style="margin-top:0">Area (yd<sup>2</sup>)</label>
             <input type="number" value="${s.area||''}" placeholder="0" min="0" oninput="updateSection(${mapIdx},${i},'area',this.value)">
           </div>
         </div>
@@ -1113,7 +1152,7 @@ function renderSiteMaps() {
             onclick="activeSiteMapIdx=${mapIdx};startDraw(${i},'modal');openMapModal(${mapIdx})">
             ${isDrawing?'⬛ Drawing…':hasPoly?'✏️ Edit polygon':'✏️ Draw polygon'}
           </button>
-          ${suggVisible?`<div class="area-suggestion visible">Map: ~${Math.round(s.suggestedArea).toLocaleString()} SY <button onclick="acceptSuggestion(${mapIdx},${i})">Use</button></div>`:''}
+          ${suggVisible?`<div class="area-suggestion visible">Map: ~${Math.round(s.suggestedArea).toLocaleString()} yd<sup>2</sup> <button onclick="acceptSuggestion(${mapIdx},${i})">Use</button></div>`:''}
         </div>
         <div class="color-pick-row">
           <span>Color</span>
@@ -1217,6 +1256,83 @@ function syncToggles() {
 function toggleDeltaMist(){deltaMistOn=!deltaMistOn;document.getElementById('deltamist-toggle').classList.toggle('on',deltaMistOn);document.getElementById('deltamist-options').classList.toggle('visible',deltaMistOn);renderSiteMaps();syncToggles();update();}
 function toggleTDRI(){tdriOn=!tdriOn;document.getElementById('tdri-toggle').classList.toggle('on',tdriOn);document.getElementById('tdri-options').classList.toggle('visible',tdriOn);renderSiteMaps();syncToggles();update();}
 function toggleRiaaS(){riaasOn=!riaasOn;document.getElementById('riaas-toggle').classList.toggle('on',riaasOn);document.getElementById('riaas-options').classList.toggle('visible',riaasOn);renderSiteMaps();syncToggles();update();}
+function toggleScheduleLanguage() {
+  const editor = document.getElementById('schedule-lang-editor');
+  const btn = document.getElementById('btn-edit-schedule');
+  const isOpen = editor.style.display !== 'none';
+  if (!isOpen) {
+    const ta = document.getElementById('schedule-override');
+    if (!ta.value) ta.value = window._lastSchedule || '';
+    editor.style.display = 'block';
+    btn.classList.add('open');
+    btn.textContent = '✕ Close Editor';
+    ta.focus();
+  } else {
+    editor.style.display = 'none';
+    btn.classList.remove('open');
+    btn.textContent = '✏ Edit Standard Language';
+  }
+}
+function resetScheduleLanguage() {
+  document.getElementById('schedule-override').value = '';
+  update();
+}
+
+function toggleExplainer(key) {
+  explainers[key] = !explainers[key];
+  document.getElementById(`explainer-${key}-toggle`).classList.toggle('on', explainers[key]);
+  if (key === 'appendixTDRI') {
+    document.getElementById('appendix-scan-options').classList.toggle('visible', explainers[key]);
+    if (explainers[key]) renderAppendixScans();
+  }
+  update();
+}
+
+function renderAppendixScans() {
+  const list = document.getElementById('appendix-scans-list');
+  if (!list) return;
+  list.innerHTML = appendixScans.map((scan, i) => `
+    <div class="upload-card">
+      <div class="uc-header">
+        <input type="text" value="${scan.title}" placeholder="Scan title (e.g. The Yards — May 2026)"
+          oninput="appendixScans[${i}].title=this.value;update()"
+          style="flex:1;font-size:13px;font-weight:600;border:none;background:transparent;padding:0;font-family:'Barlow',sans-serif;color:var(--dark);outline:none;">
+        ${appendixScans.length > 1 ? `<button class="btn-remove" onclick="removeAppendixScan(${i})">×</button>` : ''}
+      </div>
+      <div class="upload-thumb" title="Click to upload image">
+        ${scan.imageDataUrl
+          ? `<img src="${scan.imageDataUrl}" alt="${scan.title||'Scan '+( i+1)}">`
+          : `<span class="upload-placeholder">📁 Click to upload image</span>`}
+        <input type="file" accept="image/*" onchange="loadAppendixImage(${i}, this)">
+      </div>
+      ${scan.imageDataUrl ? `<button onclick="appendixScans[${i}].imageDataUrl=null;renderAppendixScans();update()" style="background:none;border:none;font-size:11px;color:var(--gray);cursor:pointer;text-decoration:underline;padding:0;">✕ Remove image</button>` : ''}
+    </div>`).join('');
+}
+
+function addAppendixScan() {
+  appendixScans.push({ title: '', imageDataUrl: null });
+  renderAppendixScans();
+  update();
+}
+
+function removeAppendixScan(i) {
+  appendixScans.splice(i, 1);
+  renderAppendixScans();
+  update();
+}
+
+function loadAppendixImage(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    appendixScans[i].imageDataUrl = e.target.result;
+    renderAppendixScans();
+    update();
+  };
+  reader.readAsDataURL(file);
+}
+
 function toggleCoring(){coringOn=!coringOn;document.getElementById('coring-toggle').classList.toggle('on',coringOn);document.getElementById('coring-options').classList.toggle('visible',coringOn);update();}
 function toggleRPF(){rpfOn=!rpfOn;document.getElementById('rpf-toggle').classList.toggle('on',rpfOn);document.getElementById('rpf-options').classList.toggle('visible',rpfOn);update();}
 
@@ -1295,7 +1411,7 @@ function renderProposal(dm,tdri,riaas,coring,total){
     const svcs = activeServicesForMap(idx);
     if (!svcs.length) return '';
     const caption = `Figure ${idx+1}: ${clientName} — ${svcs.join(' / ')}`;
-    const legendItems = sm.sections.map((s,i)=>`<div class="leg-item"><div class="leg-swatch" style="background:${s.mapColor}"></div>${s.name||`Section ${i+1}`} — ${fmt(s.area)} SY</div>`).join('');
+    const legendItems = sm.sections.map((s,i)=>`<div class="leg-item"><div class="leg-swatch" style="background:${s.mapColor}"></div>${s.name||`Section ${i+1}`} — ${fmt(s.area)} yd<sup>2</sup></div>`).join('');
     return `
     <div class="prop-map-figure">
       <div class="prop-map-img-wrap">
@@ -1311,19 +1427,19 @@ function renderProposal(dm,tdri,riaas,coring,total){
 
   const dmSecs = siteMaps[serviceMap.deltaMist]?.sections||[];
   const tdriSecs = siteMaps[serviceMap.tdri]?.sections||[];
-  const sectionRows=dmSecs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name||`Section ${i+1}`}</td><td>${fmt(s.area)} SY</td><td>0.10 gal/SY</td></tr>`).join('');
-  const tdriRows=tdriSecs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name||`Section ${i+1}`}</td><td>${fmt(s.area)} SY</td><td>${laneEquiv(s.area)}</td></tr>`).join('');
+  const sectionRows=dmSecs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name||`Section ${i+1}`}</td><td>${fmt(s.area)} yd<sup>2</sup></td><td>0.10 gal/yd<sup>2</sup></td></tr>`).join('');
+  const tdriRows=tdriSecs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name||`Section ${i+1}`}</td><td>${fmt(s.area)} yd<sup>2</sup></td><td>${laneEquiv(s.area)}</td></tr>`).join('');
   const coringRows=coringOn&&coring.checked.length?coring.checked.map(i=>`<tr><td>${dmSecs[i]?.name||`Section ${i+1}`} Coring Test</td><td class="cost-cell">${fmtMoney(CORING_RATE)}</td></tr>`).join(''):'';
 
-  const rpfBlock=rpfOn?`<div class="prop-section"><div class="prop-section-title">rPF Recycled Polymer — Future Paving</div><p class="prop-p">Driven Plastics rPF is a flake-based recycled polyethylene additive that integrates into standard hot-mix asphalt production. It recycles up to 10 tons of single-use film plastic per lane mile and produces a more durable, flexible binder that resists rutting, cracking, and freeze-thaw damage. Independent test data supports a 20–30% increase in road life versus unmodified binders.</p><table class="prop-table"><tr><td>Planned paving area</td><td style="text-align:right;font-weight:600;">${fmt(rpfArea)} SY</td></tr><tr><td>Lane mile equivalent (12-ft lane)</td><td style="text-align:right;font-weight:600;">${laneEquiv(rpfArea)}</td></tr><tr><td>Recycled film plastic diverted from landfill</td><td style="text-align:right;font-weight:600;">Up to ${Math.round(rpfArea*8.7/6158*10)/10} tons</td></tr><tr><td>Expected service life improvement</td><td style="text-align:right;font-weight:600;">20–30%</td></tr><tr><td>Expected lifecycle maintenance savings</td><td style="text-align:right;font-weight:600;">5–10%</td></tr></table><p class="prop-p" style="font-size:11.5px;color:#777;">Final rPF pricing tied to mix design and dosing method. Separate quote issued once paving timeline is confirmed. Product carries an Environmental Product Declaration through NAPA's Emerald Eco-Label program and qualifies for LEED credits.</p></div>`:'';
+  const rpfBlock=rpfOn?`<div class="prop-section"><div class="prop-section-title">rPF Recycled Polymer — Future Paving</div><p class="prop-p">Driven Plastics rPF is a flake-based recycled polyethylene additive that integrates into standard hot-mix asphalt production. It recycles up to 10 tons of single-use film plastic per lane mile and produces a more durable, flexible binder that resists rutting, cracking, and freeze-thaw damage. Independent test data supports a 20–30% increase in road life versus unmodified binders.</p><table class="prop-table"><tr><td>Planned paving area</td><td style="text-align:right;font-weight:600;">${fmt(rpfArea)} yd<sup>2</sup></td></tr><tr><td>Lane mile equivalent (12-ft lane)</td><td style="text-align:right;font-weight:600;">${laneEquiv(rpfArea)}</td></tr><tr><td>Recycled film plastic diverted from landfill</td><td style="text-align:right;font-weight:600;">Up to ${Math.round(rpfArea*8.7/6158*10)/10} tons</td></tr><tr><td>Expected service life improvement</td><td style="text-align:right;font-weight:600;">20–30%</td></tr><tr><td>Expected lifecycle maintenance savings</td><td style="text-align:right;font-weight:600;">5–10%</td></tr></table><p class="prop-p" style="font-size:11.5px;color:#777;">Final rPF pricing tied to mix design and dosing method. Separate quote issued once paving timeline is confirmed. Product carries an Environmental Product Declaration through NAPA's Emerald Eco-Label program and qualifies for LEED credits.</p></div>`:'';
 
   const tdriCostRows=tdri.flat?`<tr><td>Days</td><td style="text-align:right;">${tdri.days}</td></tr><tr><td>Day rate</td><td style="text-align:right;">${fmtMoney(tdri.dayRate)}/day</td></tr>`:`<tr><td>Lane miles</td><td style="text-align:right;">${tdri.lm}</td></tr><tr><td>Rate per lane mile</td><td style="text-align:right;">${fmtMoney(tdri.rate)}</td></tr>`;
-  const tdriBlock=tdriOn?`<div class="prop-section"><div class="prop-section-title">TDRI Subsurface Moisture Scan</div><p class="prop-p">Driven Plastics will perform a TDRI moisture scan across the same sections being treated with Delta Mist, providing ${clientName} with a complete subsurface moisture baseline supporting both short-term decision-making and long-term planning.</p><div class="prop-subsection-title">TDRI Section Breakdown</div><table class="prop-table"><thead><tr><th>#</th><th>Section</th><th>Area</th><th>Lane Mile Equiv.</th></tr></thead><tbody>${tdriRows}<tr class="total-row"><td colspan="2"><strong>Total</strong></td><td><strong>${fmt(dm.totalSY)} SY</strong></td><td><strong>${laneEq}</strong></td></tr></tbody></table><div class="prop-subsection-title">TDRI Cost</div><table class="prop-table">${tdriCostRows}<tr class="total-row"><td><strong>TDRI Subtotal</strong></td><td class="cost-cell">${fmtMoney(tdri.cost)}</td></tr></table></div>`:'';
+  const tdriBlock=tdriOn?`<div class="prop-section"><div class="prop-section-title">TDRI Subsurface Moisture Scan</div><p class="prop-p">Driven Plastics will perform a TDRI moisture scan across the same sections being treated with Delta Mist, providing ${clientName} with a complete subsurface moisture baseline supporting both short-term decision-making and long-term planning.</p><div class="prop-subsection-title">TDRI Section Breakdown</div><table class="prop-table"><thead><tr><th>#</th><th>Section</th><th>Area</th><th>Lane Mile Equiv.</th></tr></thead><tbody>${tdriRows}<tr class="total-row"><td colspan="2"><strong>Total</strong></td><td><strong>${fmt(dm.totalSY)} yd<sup>2</sup></strong></td><td><strong>${laneEq}</strong></td></tr></tbody></table><div class="prop-subsection-title">TDRI Cost</div><table class="prop-table">${tdriCostRows}<tr class="total-row"><td><strong>TDRI Subtotal</strong></td><td class="cost-cell">${fmtMoney(tdri.cost)}</td></tr></table></div>`:'';
 
   const riaasMapSecs = siteMaps[serviceMap.riaas]?.sections||[];
-  const riaasRows=riaasMapSecs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name||`Section ${i+1}`}</td><td>${fmt(s.area)} SY</td><td>${laneEquiv(s.area)}</td></tr>`).join('');
+  const riaasRows=riaasMapSecs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name||`Section ${i+1}`}</td><td>${fmt(s.area)} yd<sup>2</sup></td><td>${laneEquiv(s.area)}</td></tr>`).join('');
   const riaasСostRows=riaas.flat?`<tr><td>Days</td><td style="text-align:right;">${riaas.days}</td></tr><tr><td>Day rate</td><td style="text-align:right;">${fmtMoney(riaas.dayRate)}/day</td></tr>`:`<tr><td>Lane miles</td><td style="text-align:right;">${riaas.lm}</td></tr><tr><td>Rate per lane mile</td><td style="text-align:right;">${fmtMoney(riaas.rate)}</td></tr>`;
-  const riaasBlock=riaasOn?`<div class="prop-section"><div class="prop-section-title">RiaaS — AI-Powered Road Assessment</div><p class="prop-p">RiaaS (Road Infrastructure as a Service) is an AI-powered, cloud-based road monitoring platform that delivers real-time pavement condition data without manual inspection or traffic disruption. Vehicle-mounted edge devices scan the roadway continuously — capturing synchronized imagery, IMU vibration data, and high-precision RTK GNSS positioning — while on-device AI automatically detects and geo-maps 12+ surface distresses including potholes, longitudinal cracks, alligator cracks, patches, and debris.</p><p class="prop-p">Condition scoring is automated using the RiaaS Road Assessment model with IRI analysis aligned to ASTM standards, producing GIS-ready outputs, asset maps, and maintenance prioritization reports. For ${clientName}, RiaaS provides the data backbone needed to make informed, cost-effective infrastructure decisions — replacing reactive maintenance cycles with proactive, evidence-driven planning.</p><div class="prop-subsection-title">RiaaS Section Breakdown</div><table class="prop-table"><thead><tr><th>#</th><th>Section</th><th>Area</th><th>Lane Mile Equiv.</th></tr></thead><tbody>${riaasRows}<tr class="total-row"><td colspan="2"><strong>Total</strong></td><td><strong>${fmt(dm.totalSY)} SY</strong></td><td><strong>${laneEq}</strong></td></tr></tbody></table><div class="prop-subsection-title">RiaaS Cost</div><table class="prop-table">${riaasСostRows}<tr class="total-row"><td><strong>RiaaS Subtotal</strong></td><td class="cost-cell">${fmtMoney(riaas.cost)}</td></tr></table></div>`:'';
+  const riaasBlock=riaasOn?`<div class="prop-section"><div class="prop-section-title">RiaaS — AI-Powered Road Assessment</div><p class="prop-p">RiaaS (Road Infrastructure as a Service) is an AI-powered, cloud-based road monitoring platform that delivers real-time pavement condition data without manual inspection or traffic disruption. Vehicle-mounted edge devices scan the roadway continuously — capturing synchronized imagery, IMU vibration data, and high-precision RTK GNSS positioning — while on-device AI automatically detects and geo-maps 12+ surface distresses including potholes, longitudinal cracks, alligator cracks, patches, and debris.</p><p class="prop-p">Condition scoring is automated using the RiaaS Road Assessment model with IRI analysis aligned to ASTM standards, producing GIS-ready outputs, asset maps, and maintenance prioritization reports. For ${clientName}, RiaaS provides the data backbone needed to make informed, cost-effective infrastructure decisions — replacing reactive maintenance cycles with proactive, evidence-driven planning.</p><div class="prop-subsection-title">RiaaS Section Breakdown</div><table class="prop-table"><thead><tr><th>#</th><th>Section</th><th>Area</th><th>Lane Mile Equiv.</th></tr></thead><tbody>${riaasRows}<tr class="total-row"><td colspan="2"><strong>Total</strong></td><td><strong>${fmt(dm.totalSY)} yd<sup>2</sup></strong></td><td><strong>${laneEq}</strong></td></tr></tbody></table><div class="prop-subsection-title">RiaaS Cost</div><table class="prop-table">${riaasСostRows}<tr class="total-row"><td><strong>RiaaS Subtotal</strong></td><td class="cost-cell">${fmtMoney(riaas.cost)}</td></tr></table></div>`:'';
 
   const coringBlock=coringOn&&coring.checked.length?`<div class="prop-section"><div class="prop-section-title">Optional Test Coring</div><p class="prop-p">Driven offers the option to core a sample of pavement and measure the change in G*. Delta Mist increases G*, allowing the pavement to perform better over its service life.</p><table class="prop-table"><thead><tr><th>Service</th><th style="text-align:right;">Cost</th></tr></thead><tbody>${coringRows}<tr class="total-row"><td><strong>Coring Subtotal</strong></td><td class="cost-cell">${fmtMoney(coring.cost)}</td></tr></tbody></table></div>`:'';
 
@@ -1357,14 +1473,75 @@ function renderProposal(dm,tdri,riaas,coring,total){
     <div class="prop-body">
       <div class="prop-section"><div class="prop-section-title">Project Overview</div>${customOver ? customOver.split(/\n\n+/).filter(Boolean).map(p=>`<p class="prop-p">${p.trim()}</p>`).join('') : `<p class="prop-p">${overview}</p>${para2?`<p class="prop-p">${para2}</p>`:''}`}</div>
       ${mapFigureBlock}
-      ${deltaMistOn?`<div class="prop-section"><div class="prop-section-title">Delta Mist — Asphalt Rejuvenation Spray</div><p class="prop-p">Delta Mist is a plant-based, spray-on emulsion that rejuvenates existing asphalt by softening the binder and reversing the effects of oxidation. The product penetrates approximately 3/8" into the pavement surface, restoring binder rheology, increasing ductility, and reducing the stiffness that drives block cracking. Ideal for pavements in good condition (PCI 80 or higher), it can extend pavement life by 3 to 5 years per application.</p><p class="prop-p">Delta Mist is non-toxic, sprays clear over existing markings, requires no sand or aggregate cover, and allows traffic to resume within a few hours.</p><div class="prop-subsection-title">Treatment Sections</div><table class="prop-table"><thead><tr><th>#</th><th>Section</th><th>Area (SY)</th><th>Application Rate</th></tr></thead><tbody>${sectionRows}<tr class="total-row"><td colspan="2"><strong>Total</strong></td><td><strong>${fmt(dm.totalSY)} SY</strong></td><td></td></tr></tbody></table><div class="prop-subsection-title">Delta Mist Cost</div><table class="prop-table"><tr><td>Total area</td><td style="text-align:right;">${fmt(dm.totalSY)} SY</td></tr><tr><td>Total product required</td><td style="text-align:right;">${fmt(dm.totalSY*dm.galRate)} gallons</td></tr><tr class="total-row"><td><strong>Delta Mist Total</strong></td><td class="cost-cell">${fmtMoney(dm.cost)}</td></tr><tr><td>Unit cost</td><td style="text-align:right;">$${dm.rate.toFixed(2)}/SY</td></tr></table><p class="prop-p" style="font-size:11.5px;color:#777;">Final invoice reflects actual yardage sprayed. Variance not anticipated to exceed ±10%.</p></div>`:''}
+      ${deltaMistOn?`<div class="prop-section"><div class="prop-section-title">Delta Mist — Asphalt Rejuvenation Spray</div><p class="prop-p">Delta Mist is a plant-based, spray-on emulsion that rejuvenates existing asphalt by softening the binder and reversing the effects of oxidation. The product penetrates approximately 3/8" into the pavement surface, restoring binder rheology, increasing ductility, and reducing the stiffness that drives block cracking. Ideal for pavements in good condition (PCI 80 or higher), it can extend pavement life by 3 to 5 years per application.</p><p class="prop-p">Delta Mist is non-toxic, sprays clear over existing markings, requires no sand or aggregate cover, and allows traffic to resume within a few hours.</p><div class="prop-subsection-title">Application Conditions</div><div class="conditions-block" style="margin-bottom:16px;">Pavement surface temperature: minimum 50°F and rising · No oil, grease, or debris at time of application · No major weather events forecast within 24 hours · Pavement temperature must remain below 150°F</div><div class="prop-subsection-title">Treatment Sections</div><table class="prop-table"><thead><tr><th>#</th><th>Section</th><th>Area (yd<sup>2</sup>)</th><th>Application Rate</th></tr></thead><tbody>${sectionRows}<tr class="total-row"><td colspan="2"><strong>Total</strong></td><td><strong>${fmt(dm.totalSY)} yd<sup>2</sup></strong></td><td></td></tr></tbody></table><div class="prop-subsection-title">Delta Mist Cost</div><table class="prop-table"><tr><td>Total area</td><td style="text-align:right;">${fmt(dm.totalSY)} yd<sup>2</sup></td></tr><tr><td>Total product required</td><td style="text-align:right;">${fmt(dm.totalSY*dm.galRate)} gallons</td></tr><tr class="total-row"><td><strong>Delta Mist Total</strong></td><td class="cost-cell">${fmtMoney(dm.cost)}</td></tr><tr><td>Unit cost</td><td style="text-align:right;">$${dm.rate.toFixed(2)}/yd<sup>2</sup></td></tr></table><p class="prop-p" style="font-size:11.5px;color:#777;">Final invoice reflects actual yardage sprayed. Variance not anticipated to exceed ±10%.</p></div>`:''}
       ${tdriBlock}${riaasBlock}${coringBlock}${rpfBlock}
-      <div class="prop-section"><div class="prop-section-title">Total Project Cost Summary</div><div class="cost-summary-block">${deltaMistOn?`<div class="csl"><span class="name">Delta Mist Rejuvenation (${fmt(dm.totalSY)} SY)</span><span class="val">${fmtMoney(dm.cost)}</span></div>`:''}${tdriOn?`<div class="csl"><span class="name">TDRI Subsurface Scan (${tdri.lm} lane miles)</span><span class="val">${fmtMoney(tdri.cost)}</span></div>`:''}${riaasOn?`<div class="csl"><span class="name">RiaaS AI Road Scan (${riaas.lm} lane miles)</span><span class="val">${fmtMoney(riaas.cost)}</span></div>`:''}${tdri.annual?`<div class="csl"><span class="name">Annual Rescan (yearly)</span><span class="val">${fmtMoney(TDRI_ANNUAL)}/yr</span></div>`:''}${coringOn&&coring.checked.length?`<div class="csl"><span class="name">Optional Test Coring (${coring.checked.length} section${coring.checked.length>1?'s':''})</span><span class="val">${fmtMoney(coring.cost)}</span></div>`:''}${rpfOn?`<div class="csl"><span class="name">rPF Forward Plan (${fmt(rpfArea)} SY future paving)</span><span class="val">TBD at paving design</span></div>`:''}<div class="csl total-line"><span class="name">Total Project Cost</span><span class="val">${fmtMoney(total)}</span></div></div></div>
-      <div class="prop-section"><div class="prop-section-title">Application Conditions</div><div class="conditions-block">Pavement surface temperature: minimum 50°F and rising · No oil, grease, or debris at time of application · No major weather events forecast within 24 hours · Pavement temperature must remain below 150°F</div></div>
+      <div class="prop-section"><div class="prop-section-title">Total Project Cost Summary</div><div class="cost-summary-block">${deltaMistOn?`<div class="csl"><span class="name">Delta Mist Rejuvenation (${fmt(dm.totalSY)} yd<sup>2</sup>)</span><span class="val">${fmtMoney(dm.cost)}</span></div>`:''}${tdriOn?`<div class="csl"><span class="name">TDRI Subsurface Scan (${tdri.lm} lane miles)</span><span class="val">${fmtMoney(tdri.cost)}</span></div>`:''}${riaasOn?`<div class="csl"><span class="name">RiaaS AI Road Scan (${riaas.lm} lane miles)</span><span class="val">${fmtMoney(riaas.cost)}</span></div>`:''}${tdri.annual?`<div class="csl"><span class="name">Annual Rescan (yearly)</span><span class="val">${fmtMoney(TDRI_ANNUAL)}/yr</span></div>`:''}${coringOn&&coring.checked.length?`<div class="csl"><span class="name">Optional Test Coring (${coring.checked.length} section${coring.checked.length>1?'s':''})</span><span class="val">${fmtMoney(coring.cost)}</span></div>`:''}${rpfOn?`<div class="csl"><span class="name">rPF Forward Plan (${fmt(rpfArea)} yd<sup>2</sup> future paving)</span><span class="val">TBD at paving design</span></div>`:''}<div class="csl total-line"><span class="name">Total Project Cost</span><span class="val">${fmtMoney(total)}</span></div></div></div>
       <div class="prop-section"><div class="prop-section-title">Responsibilities</div><div class="row2" style="gap:16px;">
         <div><div class="prop-subsection-title">Driven Plastics Will Provide</div><ul style="margin:0;padding-left:16px;"><li class="prop-p" style="margin-bottom:3px;">All labor and materials</li>${getItemsByParty('driven').map(i=>`<li class="prop-p" style="margin-bottom:3px;">${i}</li>`).join('')}</ul></div>
         <div><div class="prop-subsection-title">${clientName} Will Provide</div><ul style="margin:0;padding-left:16px;">${getItemsByParty('client').map(i=>`<li class="prop-p" style="margin-bottom:3px;">${i}</li>`).join('')||'<li class="prop-p">—</li>'}</ul></div>
       </div></div>
+    ${(()=>{
+      const days = parseFloat(document.getElementById('schedule-days')?.value)||1;
+      const scanService = tdriOn && riaasOn ? 'TDRI and RiaaS' : tdriOn ? 'TDRI' : riaasOn ? 'RiaaS' : '';
+      const autoSchedule = [
+        scanService ? `${scanService} scanning: scheduled prior to Delta Mist application to establish a clean pre-treatment baseline. Approximately 2 days on site.` : '',
+        deltaMistOn ? (scanService ? `Delta Mist application: scheduled within 7 to 14 days following ${scanService} scan, weather permitting. Approximately 1.5 days on site.` : `Delta Mist application: scheduled pending confirmation of pavement temperature and weather conditions.`) : '',
+        `Total estimated on-site duration: ${days} day${days!==1?'s':''}.`,
+        rpfOn ? `rPF: separately scheduled when ${clientName} confirms timing for the ${fmt(rpfArea)} yd<sup>2</sup> paving project.` : '',
+      ].filter(Boolean);
+      window._lastSchedule = autoSchedule.join('\n');
+      const overrideVal = document.getElementById('schedule-override')?.value.trim();
+      const scheduleHTML = overrideVal
+        ? overrideVal.split(/\n+/).filter(Boolean).map(l=>`<li class="prop-p">${l.replace(/^[-•]\s*/,'')}</li>`).join('')
+        : autoSchedule.map(l=>`<li class="prop-p">${l}</li>`).join('');
+      return scheduleHTML ? `
+    <div class="prop-section">
+      <div class="prop-section-title">Project Schedule</div>
+      <ul style="margin:0;padding-left:18px;">${scheduleHTML}</ul>
+    </div>` : '';
+    })()}
+
+    ${explainers.equipDM ? `
+    <div class="prop-section">
+      <div class="prop-section-title">Equipment — Delta Mist Distributor Truck</div>
+      <p class="prop-p">The Delta Mist distributor truck is a self-contained distribution and spray system designed to ensure precise and controlled application on road and parking lot surfaces. The truck is equipped with a GPS-controlled rate system, allowing accurate regulation of treatment distribution. A totalizer monitors the total quantity of material applied, supporting project quality and post-job inspection.</p>
+      <p class="prop-p">The Delta Mist treatment is non-toxic, and the distributor truck is equipped with mild overspray protection to minimize environmental impact. Application speed is maintained at approximately 5 miles per hour to ensure consistent coverage.</p>
+      <div class="prop-map-figure" style="max-width:480px;margin:0 auto 16px;">
+        <div class="prop-map-img-wrap" style="min-height:260px;">
+          <img src="img/delta-mist-truck.jpg" alt="Delta Mist Distributor Truck" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="prop-map-placeholder" style="display:none;">📁 Add photo: img/delta-mist-truck.jpg</div>
+        </div>
+        <div class="prop-map-legend"><div class="fig-caption">Figure: Delta Mist Distributor Truck</div></div>
+      </div>
+    </div>` : ''}
+
+    ${explainers.equipTDRI ? `
+    <div class="prop-section">
+      <div class="prop-section-title">Equipment — TDRI Subsurface Scanner</div>
+      <p class="prop-p">The TDRI system is hitch-mounted on a standard pickup truck and operated at scanning speed. Data is captured continuously, time and location stamped, and made available for visualization within minutes of capture. For this project, the truck will operate in a looping pattern at 3 to 4 miles per hour.</p>
+      <div class="prop-map-figure" style="max-width:480px;margin:0 auto 16px;">
+        <div class="prop-map-img-wrap" style="min-height:260px;">
+          <img src="img/tdri-setup.jpg" alt="TDRI Data Collection Setup" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="prop-map-placeholder" style="display:none;">📁 Add photo: img/tdri-setup.jpg</div>
+        </div>
+        <div class="prop-map-legend"><div class="fig-caption">Figure: TDRI Data Collection Setup</div></div>
+      </div>
+    </div>` : ''}
+
+    ${explainers.appendixTDRI && appendixScans.some(s => s.imageDataUrl || s.title) ? `
+    <div class="prop-section">
+      <div class="prop-section-title">Appendix A — Previous Scans</div>
+      ${appendixScans.map((scan, i) => `
+        ${scan.title ? `<div class="prop-subsection-title"${i > 0 ? ' style="margin-top:20px;"' : ''}>${scan.title}</div>` : ''}
+        <div class="prop-map-figure">
+          <div class="prop-map-img-wrap" style="min-height:200px;">
+            ${scan.imageDataUrl
+              ? `<img src="${scan.imageDataUrl}" alt="${scan.title||'Scan '+(i+1)}">`
+              : `<div class="prop-map-placeholder">No image uploaded yet.</div>`}
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+
     </div>
     <div class="prop-footer"><div class="contact"><strong>${contactName}</strong><br>Driven Plastics · 1107 South Santa Fe Drive Suite A, Pueblo CO 81006<br>${contactEmail} · ${contactPhone}</div><div class="validity">Proposal valid 60 days from date of issue.<br>Pricing assumes work completed within the 2026 paving season.</div></div>
   `;
