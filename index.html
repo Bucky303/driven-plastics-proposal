@@ -236,7 +236,14 @@
 <body>
 <header class="app-header">
   <div class="logo-text">DRIVEN <span>PLASTICS</span></div>
-  <div class="tag">Proposal Generator</div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <label style="background:#2C2C2C;color:#ccc;border:1.5px solid #444;border-radius:6px;padding:7px 14px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.05em;cursor:pointer;text-transform:uppercase;white-space:nowrap;transition:all .15s;" onmouseover="this.style.borderColor='var(--orange)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='#444';this.style.color='#ccc'" title="Load a saved proposal">
+      📂 Load
+      <input type="file" accept=".json" onchange="loadProposal(this)" style="display:none;">
+    </label>
+    <button onclick="saveProposal()" style="background:#2C2C2C;color:#ccc;border:1.5px solid #444;border-radius:6px;padding:7px 14px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.05em;cursor:pointer;text-transform:uppercase;white-space:nowrap;transition:all .15s;" onmouseover="this.style.borderColor='var(--orange)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='#444';this.style.color='#ccc'" title="Save proposal to file">💾 Save</button>
+    <div class="tag">Proposal Generator</div>
+  </div>
 </header>
 <div class="layout">
   <div class="form-panel">
@@ -448,6 +455,7 @@
         <input type="text" id="modal-map-search" placeholder="Search address…" onkeydown="if(event.key==='Enter')searchAddress('modal')">
         <button onclick="searchAddress('modal')">Go</button>
       </div>
+<button onclick="exportModalMap()" style="background:#2C2C2C;color:#ccc;border:1.5px solid #444;border-radius:6px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;text-transform:uppercase;white-space:nowrap;" onmouseover="this.style.borderColor='var(--orange)';this.style.color='var(--orange)'" onmouseout="this.style.borderColor='#444';this.style.color='#ccc'">⬇ Export Image</button>
 <button class="btn-modal-done" onclick="closeMapModal()">✓ Done — Save Snapshot</button>
       <button class="btn-modal-close" onclick="cancelMapModal()" style="background:#C0392B;color:white;border-radius:6px;padding:6px 14px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;">Cancel</button>
     </div>
@@ -956,6 +964,16 @@ function cancelMapModal() {
 }
 
 function handleEsc(e) { if (e.key === 'Escape') cancelMapModal(); }
+
+function exportModalMap() {
+  if (!modalMap) return;
+  const canvas = modalMap.getCanvas();
+  const name = (siteMaps[activeSiteMapIdx]?.name || 'site-map').replace(/\s+/g,'-').toLowerCase();
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/jpeg', 1.0);
+  a.download = `${name}.jpg`;
+  a.click();
+}
 
 // ─────────────────────────────────────────────
 //  3D BUILDINGS TOGGLE
@@ -1611,6 +1629,169 @@ function renderProposal(dm,tdri,riaas,coring,total,tm={},pricePerYd=0){
 }
 
 function printProposal(){window.print();}
+
+// ─────────────────────────────────────────────
+//  SAVE / LOAD
+// ─────────────────────────────────────────────
+function saveProposal() {
+  const v = id => document.getElementById(id)?.value || '';
+  const state = {
+    version: 1,
+    deltaMistOn, tdriOn, coringOn, rpfOn, riaasOn,
+    tdriMode, riaasMode, pricePerYdMode,
+    explainers: {...explainers},
+    appendixScans: appendixScans.map(s => ({...s})),
+    siteMaps: siteMaps.map(sm => ({
+      name: sm.name,
+      snapshot: sm.snapshot,
+      sections: sm.sections.map(s => ({...s, geometry: s.geometry ? JSON.parse(JSON.stringify(s.geometry)) : null})),
+    })),
+    serviceMap: {...serviceMap},
+    responsibilityItems: RESPONSIBILITY_ITEMS.map(r => ({id:r.id, assignedTo:r.assignedTo, cost:r.cost||0})),
+    fields: {
+      clientName:        v('client-name'),
+      projectLocation:   v('project-location'),
+      proposalDate:      v('proposal-date'),
+      projectOverview:   v('project-overview'),
+      deltamistRate:     v('deltamist-rate'),
+      deltamistGalRate:  v('deltamist-gal-rate'),
+      tdriLaneMiles:     v('tdri-lane-miles'),
+      tdriAmount:        v('tdri-amount'),
+      tdriFlatDays:      v('tdri-flat-days'),
+      tdriFlatRate:      v('tdri-flat-rate'),
+      riaasLaneMiles:    v('riaas-lane-miles'),
+      riaasAmount:       v('riaas-amount'),
+      riaaSFlatDays:     v('riaas-flat-days'),
+      riaaSFlatRate:     v('riaas-flat-rate'),
+      coringNumCores:    v('coring-num-cores'),
+      coringCostPerCore: v('coring-cost-per-core'),
+      coringAnalysisCost:v('coring-analysis-cost'),
+      rpfArea:           v('rpf-area'),
+      tmLabor:           v('tm-labor'),
+      tmEquipment:       v('tm-equipment'),
+      tmMaterial:        v('tm-material'),
+      ppyManualInput:    v('ppy-manual-input'),
+      scheduleDays:      v('schedule-days'),
+      scheduleOverride:  v('schedule-override'),
+      contactName:       v('contact-name'),
+      contactPhone:      v('contact-phone'),
+      contactEmail:      v('contact-email'),
+    },
+  };
+  const client = (v('client-name') || 'proposal').replace(/[^a-z0-9]/gi,'-').toLowerCase();
+  const date = new Date().toISOString().slice(0,10);
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${client}-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadProposal(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      restoreProposal(JSON.parse(e.target.result));
+    } catch(err) {
+      alert('Could not read proposal file. Make sure it is a valid Driven Plastics proposal (.json).');
+    }
+  };
+  reader.readAsText(file);
+  input.value = ''; // reset so same file can be reloaded
+}
+
+function restoreProposal(state) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+
+  // State variables
+  deltaMistOn    = !!state.deltaMistOn;
+  tdriOn         = !!state.tdriOn;
+  coringOn       = !!state.coringOn;
+  rpfOn          = !!state.rpfOn;
+  riaasOn        = !!state.riaasOn;
+  tdriMode       = state.tdriMode    || 'auto';
+  riaasMode      = state.riaasMode   || 'auto';
+  pricePerYdMode = state.pricePerYdMode || 'auto';
+  explainers     = Object.assign({equipDM:false, equipTDRI:false, appendixTDRI:false}, state.explainers || {});
+  appendixScans  = state.appendixScans || [{title:'', imageDataUrl:null}];
+  siteMaps       = state.siteMaps || [{name:'Site Map 1', snapshot:null, sections:defaultSections()}];
+  serviceMap     = Object.assign({deltaMist:0, tdri:0, riaas:0}, state.serviceMap || {});
+
+  // Responsibility items
+  (state.responsibilityItems || []).forEach(saved => {
+    const item = RESPONSIBILITY_ITEMS.find(r => r.id === saved.id);
+    if (item) { item.assignedTo = saved.assignedTo; item.cost = saved.cost || 0; }
+  });
+
+  // Form fields
+  const f = state.fields || {};
+  set('client-name',         f.clientName);
+  set('project-location',    f.projectLocation);
+  set('proposal-date',       f.proposalDate);
+  set('project-overview',    f.projectOverview);
+  set('deltamist-rate',      f.deltamistRate);
+  set('deltamist-gal-rate',  f.deltamistGalRate);
+  set('tdri-lane-miles',     f.tdriLaneMiles);
+  set('tdri-amount',         f.tdriAmount);
+  set('tdri-flat-days',      f.tdriFlatDays);
+  set('tdri-flat-rate',      f.tdriFlatRate);
+  set('riaas-lane-miles',    f.riaasLaneMiles);
+  set('riaas-amount',        f.riaasAmount);
+  set('riaas-flat-days',     f.riaaSFlatDays);
+  set('riaas-flat-rate',     f.riaaSFlatRate);
+  set('coring-num-cores',    f.coringNumCores);
+  set('coring-cost-per-core',f.coringCostPerCore);
+  set('coring-analysis-cost',f.coringAnalysisCost);
+  set('rpf-area',            f.rpfArea);
+  set('tm-labor',            f.tmLabor);
+  set('tm-equipment',        f.tmEquipment);
+  set('tm-material',         f.tmMaterial);
+  set('ppy-manual-input',    f.ppyManualInput);
+  set('schedule-days',       f.scheduleDays);
+  set('schedule-override',   f.scheduleOverride);
+  set('contact-name',        f.contactName);
+  set('contact-phone',       f.contactPhone);
+  set('contact-email',       f.contactEmail);
+
+  // Restore toggle UI
+  document.getElementById('deltamist-toggle').classList.toggle('on', deltaMistOn);
+  document.getElementById('deltamist-options').classList.toggle('visible', deltaMistOn);
+  document.getElementById('tdri-toggle').classList.toggle('on', tdriOn);
+  document.getElementById('tdri-options').classList.toggle('visible', tdriOn);
+  document.getElementById('riaas-toggle').classList.toggle('on', riaasOn);
+  document.getElementById('riaas-options').classList.toggle('visible', riaasOn);
+  document.getElementById('coring-toggle').classList.toggle('on', coringOn);
+  document.getElementById('coring-options').classList.toggle('visible', coringOn);
+  document.getElementById('rpf-toggle').classList.toggle('on', rpfOn);
+  document.getElementById('rpf-options').classList.toggle('visible', rpfOn);
+  Object.keys(explainers).forEach(key => {
+    document.getElementById(`explainer-${key}-toggle`)?.classList.toggle('on', explainers[key]);
+  });
+  document.getElementById('appendix-scan-options')?.classList.toggle('visible', explainers.appendixTDRI);
+
+  // Restore pricing modes (updates button states + field visibility)
+  setTDRIMode(tdriMode);
+  setRiaasMode(riaasMode);
+  setPricePerYdMode(pricePerYdMode);
+
+  // Re-render dynamic sections
+  syncToggles();
+  renderSiteMaps();
+  renderResponsibilities();
+  if (explainers.appendixTDRI) renderAppendixScans();
+
+  // Refresh polygon layers on maps
+  refreshPolygonLayers(inlineMap);
+  if (modalMap) refreshPolygonLayers(modalMap);
+  if (activeSections().some(s => s.geometry)) {
+    requestAnimationFrame(() => fitToPolygons(inlineMap));
+  }
+
+  update();
+}
 </script>
 </body>
 </html>
