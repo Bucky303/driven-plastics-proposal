@@ -92,6 +92,8 @@
   .rtg-btn:hover{background:#f5f5f5;}
   .rtg-btn.driven.active{background:var(--orange);color:white;}
   .rtg-btn.client.active{background:#1A5C9E;color:white;}
+  .rtg-btn.na.active{background:#999;color:white;}
+  .resp-row.na-row{opacity:0.45;}
 
   .cost-bar{position:sticky;bottom:0;background:var(--dark);padding:14px 2rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #333;}
   .cost-bar .label{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.06em;}
@@ -487,7 +489,6 @@ const RESPONSIBILITY_ITEMS = [
   {id:'r-confirm', label:'Confirmation of pavement temperature and weather conditions',           assignedTo:'client', cost:0},
   {id:'r-sweep2',  label:'Pre-sweep or cleaning of surface prior to arrival',                    assignedTo:'client', cost:0},
   {id:'r-permits', label:'Any required permits or approvals',                                    assignedTo:'client', cost:0},
-  {id:'r-marking', label:'Re-striping / pavement marking after treatment',                       assignedTo:'client', cost:0},
 ];
 
 // ─────────────────────────────────────────────
@@ -1078,13 +1079,15 @@ function renderResponsibilities() {
   const el = document.getElementById('responsibility-items');
   if (!el) return;
   el.innerHTML = RESPONSIBILITY_ITEMS.map(item => `
-    <div class="resp-row" style="${item.assignedTo==='driven'?'flex-wrap:wrap;':''}">
+    <div class="resp-row${item.assignedTo==='na'?' na-row':''}" style="${item.assignedTo==='driven'?'flex-wrap:wrap;':''}">
       <span class="resp-label">${item.label}</span>
       <div class="resp-toggle-group">
         <button class="rtg-btn driven${item.assignedTo==='driven'?' active':''}"
           onclick="setResponsibility('${item.id}','driven')">Driven</button>
         <button class="rtg-btn client${item.assignedTo==='client'?' active':''}"
           onclick="setResponsibility('${item.id}','client')">Client</button>
+        <button class="rtg-btn na${item.assignedTo==='na'?' active':''}"
+          onclick="setResponsibility('${item.id}','na')">N/A</button>
       </div>
       ${item.assignedTo==='driven' ? `<input type="number" class="resp-cost" value="${item.cost||''}" placeholder="Cost ($)" min="0" step="0.01" oninput="setResponsibilityCost('${item.id}',this.value)">` : ''}
     </div>`).join('');
@@ -1092,7 +1095,7 @@ function renderResponsibilities() {
 
 function setResponsibility(id, party) {
   const item = RESPONSIBILITY_ITEMS.find(r => r.id === id);
-  if (item) { item.assignedTo = party; if (party === 'client') item.cost = 0; renderResponsibilities(); update(); }
+  if (item) { item.assignedTo = party; if (party !== 'driven') item.cost = 0; renderResponsibilities(); update(); }
 }
 
 function setResponsibilityCost(id, val) {
