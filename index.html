@@ -477,6 +477,8 @@
 // ─────────────────────────────────────────────
 //  CONSTANTS
 // ─────────────────────────────────────────────
+// Equipment image data URLs — preloaded at startup so re-renders never lose them
+const EQUIP_IMGS = { dm: 'img/delta-mist-truck.jpg', tdri: 'img/tdri-setup.jpg' };
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiZHJpdmVucGxhc3RpY3MiLCJhIjoiY21wcGw1Y25yMGZrdTJyb2VpY2I1eXUwZSJ9.lr9J7SsyGDo_eOSsRmH6bQ';
 const STYLE_INLINE   = 'mapbox://styles/mapbox/satellite-streets-v12';  // inline preview
 const STYLE_MODAL    = 'mapbox://styles/mapbox/satellite-streets-v12';   // modal edit map
@@ -533,6 +535,20 @@ let preModalSections = null;   // full sections geometry backup before modal ope
 // ─────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────
+function preloadEquipmentImages() {
+  [['dm','img/delta-mist-truck.jpg'],['tdri','img/tdri-setup.jpg']].forEach(([key,path]) => {
+    fetch(path)
+      .then(r => r.ok ? r.blob() : Promise.reject())
+      .then(blob => new Promise(res => {
+        const fr = new FileReader();
+        fr.onload = e => { EQUIP_IMGS[key] = e.target.result; res(); };
+        fr.readAsDataURL(blob);
+      }))
+      .then(() => update())
+      .catch(() => {}); // keep original path as fallback if fetch fails
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('proposal-date').value =
     new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
@@ -542,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
   syncToggles();
   update();
   initInlineMap();
+  preloadEquipmentImages();
 });
 
 // ─────────────────────────────────────────────
@@ -1589,7 +1606,7 @@ function renderProposal(dm,tdri,riaas,coring,total,tm={},pricePerYd=0){
       <p class="prop-p">The Delta Mist treatment is non-toxic, and the distributor truck is equipped with mild overspray protection to minimize environmental impact. Application speed is maintained at approximately 5 miles per hour to ensure consistent coverage.</p>
       <div class="prop-map-figure" style="max-width:480px;margin:0 auto 16px;">
         <div class="prop-map-img-wrap" style="min-height:260px;">
-          <img src="img/delta-mist-truck.jpg" alt="Delta Mist Distributor Truck" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <img src="${EQUIP_IMGS.dm}" alt="Delta Mist Distributor Truck" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="prop-map-placeholder" style="display:none;">📁 Add photo: img/delta-mist-truck.jpg</div>
         </div>
         <div class="prop-map-legend"><div class="fig-caption">Figure: Delta Mist Distributor Truck</div></div>
@@ -1602,7 +1619,7 @@ function renderProposal(dm,tdri,riaas,coring,total,tm={},pricePerYd=0){
       <p class="prop-p">The TDRI system is hitch-mounted on a standard pickup truck and operated at scanning speed. Data is captured continuously, time and location stamped, and made available for visualization within minutes of capture. For this project, the truck will operate in a looping pattern at 3 to 4 miles per hour.</p>
       <div class="prop-map-figure" style="max-width:480px;margin:0 auto 16px;">
         <div class="prop-map-img-wrap" style="min-height:260px;">
-          <img src="img/tdri-setup.jpg" alt="TDRI Data Collection Setup" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <img src="${EQUIP_IMGS.tdri}" alt="TDRI Data Collection Setup" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="prop-map-placeholder" style="display:none;">📁 Add photo: img/tdri-setup.jpg</div>
         </div>
         <div class="prop-map-legend"><div class="fig-caption">Figure: TDRI Data Collection Setup</div></div>
